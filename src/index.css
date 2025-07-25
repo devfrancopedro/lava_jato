@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Lava Jato Design System - Cores especificadas */
+    --background: 0 0% 100%; /* Branco */
+    --foreground: 0 0% 0%; /* Preto */
+
+    --card: 0 0% 100%; /* Branco */
+    --card-foreground: 0 0% 0%; /* Preto */
+
+    --popover: 0 0% 100%; /* Branco */
+    --popover-foreground: 0 0% 0%; /* Preto */
+
+    --primary: 240 100% 48%; /* Azul #0000f4 */
+    --primary-foreground: 0 0% 100%; /* Branco */
+
+    --secondary: 0 0% 96%; /* Cinza muito claro */
+    --secondary-foreground: 0 0% 0%; /* Preto */
+
+    --muted: 0 0% 96%; /* Cinza muito claro */
+    --muted-foreground: 0 0% 45%; /* Cinza médio */
+
+    --accent: 240 100% 48%; /* Azul */
+    --accent-foreground: 0 0% 100%; /* Branco */
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%; /* Cinza claro para bordas */
+    --input: 0 0% 90%; /* Cinza claro para inputs */
+    --ring: 240 100% 48%; /* Azul para focus */
+
+    --radius: 0.5rem;
+
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 240 100% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 240 100% 48%;
+
+    /* Custom gradients and shadows */
+    --gradient-primary: linear-gradient(135deg, hsl(240 100% 48%), hsl(240 100% 60%));
+    --shadow-elegant: 0 4px 20px -4px hsl(240 100% 48% / 0.15);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 0 0% 8%; /* Preto suave */
+    --foreground: 0 0% 95%; /* Branco suave */
+
+    --card: 0 0% 12%; /* Preto suave */
+    --card-foreground: 0 0% 95%; /* Branco suave */
+
+    --popover: 0 0% 12%; /* Preto suave */
+    --popover-foreground: 0 0% 95%; /* Branco suave */
+
+    --primary: 240 100% 55%; /* Azul mais claro no dark */
+    --primary-foreground: 0 0% 100%; /* Branco */
+
+    --secondary: 0 0% 15%; /* Cinza escuro */
+    --secondary-foreground: 0 0% 95%; /* Branco suave */
+
+    --muted: 0 0% 15%; /* Cinza escuro */
+    --muted-foreground: 0 0% 65%; /* Cinza médio */
+
+    --accent: 240 100% 55%; /* Azul */
+    --accent-foreground: 0 0% 100%; /* Branco */
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%; /* Cinza escuro para bordas */
+    --input: 0 0% 20%; /* Cinza escuro para inputs */
+    --ring: 240 100% 55%; /* Azul para focus */
+
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 240 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 240 100% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
