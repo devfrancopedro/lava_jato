@@ -14,7 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          modelo_veiculo: string
+          nome: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          modelo_veiculo: string
+          nome: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          modelo_veiculo?: string
+          nome?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      historico_servicos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          funcionario_responsavel: string
+          id: string
+          observacoes: string | null
+          status: string
+          tempo_real_minutos: number | null
+          tipo_servico_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          funcionario_responsavel: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tempo_real_minutos?: number | null
+          tipo_servico_id: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          funcionario_responsavel?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tempo_real_minutos?: number | null
+          tipo_servico_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_servicos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_servicos_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tipos_servicos: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          tempo_medio_minutos: number
+          valor_padrao: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          tempo_medio_minutos: number
+          valor_padrao: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          tempo_medio_minutos?: number
+          valor_padrao?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
