@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,72 +10,91 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Car, Clock, User, DollarSign, CheckCircle, Play } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Cliente {
+  id: string;
+  nome: string;
+  modelo_veiculo: string;
+}
+
+interface TipoServico {
+  id: string;
+  nome: string;
+  tempo_medio_minutos: number;
+  valor_padrao: number;
+}
 
 interface Servico {
-  id: number;
-  tipoServico: string;
-  nomeCliente: string;
-  modeloCarro: string;
-  placa: string;
+  id: string;
+  cliente_id: string;
+  tipo_servico_id: string;
   valor: number;
-  tempoEstimado: number;
-  funcionarioResponsavel: string;
+  data_inicio: string;
+  data_fim?: string;
+  tempo_real_minutos?: number;
+  funcionario_responsavel: string;
   status: "andamento" | "finalizado";
-  dataHora: string;
+  clientes?: Cliente;
+  tipos_servicos?: TipoServico;
 }
 
 export default function Servicos() {
-  const [servicos, setServicos] = useState<Servico[]>([
-    {
-      id: 1,
-      tipoServico: "Lavagem Completa",
-      nomeCliente: "João Silva",
-      modeloCarro: "Honda Civic",
-      placa: "ABC-1234",
-      valor: 35.00,
-      tempoEstimado: 60,
-      funcionarioResponsavel: "Carlos Silva",
-      status: "andamento",
-      dataHora: "2024-01-15T10:30:00"
-    },
-    {
-      id: 2,
-      tipoServico: "Enceramento",
-      nomeCliente: "Maria Santos",
-      modeloCarro: "Toyota Corolla",
-      placa: "XYZ-5678",
-      valor: 80.00,
-      tempoEstimado: 120,
-      funcionarioResponsavel: "Ana Santos",
-      status: "finalizado",
-      dataHora: "2024-01-15T08:00:00"
-    },
-  ]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [tiposServicos, setTiposServicos] = useState<TipoServico[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const form = useForm({
     defaultValues: {
-      tipoServico: "",
-      nomeCliente: "",
-      modeloCarro: "",
-      placa: "",
+      cliente_id: "",
+      tipo_servico_id: "",
       valor: "",
-      tempoEstimado: "",
       funcionarioResponsavel: "",
     },
   });
 
-  const tiposServico = [
-    "Lavagem Simples",
-    "Lavagem Completa",
-    "Enceramento",
-    "Polimento",
-    "Lavagem + Enceramento",
-    "Lavagem + Polimento"
-  ];
+  const loadData = async () => {
+    try {
+      const [servicosResult, clientesResult, tiposResult] = await Promise.all([
+        supabase
+          .from('historico_servicos')
+          .select(`
+            *,
+            clientes (id, nome, modelo_veiculo),
+            tipos_servicos (id, nome, tempo_medio_minutos, valor_padrao)
+          `)
+          .order('data_inicio', { ascending: false }),
+        supabase.from('clientes').select('id, nome, modelo_veiculo').order('nome'),
+        supabase.from('tipos_servicos').select('*').order('nome')
+      ]);
+
+      if (servicosResult.error) throw servicosResult.error;
+      if (clientesResult.error) throw clientesResult.error;
+      if (tiposResult.error) throw tiposResult.error;
+
+      setServicos((servicosResult.data || []).map(s => ({ ...s, status: s.status as "andamento" | "finalizado" })));
+      setClientes(clientesResult.data || []);
+      setTiposServicos(tiposResult.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os dados.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const funcionarios = [
     "Carlos Silva",
@@ -85,47 +104,91 @@ export default function Servicos() {
   ];
 
   const filteredServicos = servicos.filter(servico =>
-    servico.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    servico.nomeCliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    servico.tipoServico.toLowerCase().includes(searchTerm.toLowerCase())
+    servico.clientes?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    servico.tipos_servicos?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    servico.funcionario_responsavel.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const servicosAndamento = filteredServicos.filter(s => s.status === "andamento");
   const servicosFinalizados = filteredServicos.filter(s => s.status === "finalizado");
 
-  const onSubmit = (data: any) => {
-    const novoServico: Servico = {
-      id: servicos.length + 1,
-      tipoServico: data.tipoServico,
-      nomeCliente: data.nomeCliente,
-      modeloCarro: data.modeloCarro,
-      placa: data.placa.toUpperCase(),
-      valor: parseFloat(data.valor),
-      tempoEstimado: parseInt(data.tempoEstimado),
-      funcionarioResponsavel: data.funcionarioResponsavel,
-      status: "andamento",
-      dataHora: new Date().toISOString(),
-    };
-    
-    setServicos([novoServico, ...servicos]);
-    setDialogOpen(false);
-    form.reset();
-    
-    toast({
-      title: "Serviço criado",
-      description: `Serviço para ${novoServico.nomeCliente} foi iniciado.`,
-    });
+  const onSubmit = async (data: any) => {
+    try {
+      const { data: novoServico, error } = await supabase
+        .from('historico_servicos')
+        .insert([{
+          cliente_id: data.cliente_id,
+          tipo_servico_id: data.tipo_servico_id,
+          valor: parseFloat(data.valor),
+          funcionario_responsavel: data.funcionarioResponsavel,
+          status: "andamento",
+        }])
+        .select(`
+          *,
+          clientes (id, nome, modelo_veiculo),
+          tipos_servicos (id, nome, tempo_medio_minutos, valor_padrao)
+        `)
+        .single();
+      
+      if (error) throw error;
+      
+      setServicos([{ ...novoServico, status: novoServico.status as "andamento" | "finalizado" }, ...servicos]);
+      setDialogOpen(false);
+      form.reset();
+      
+      toast({
+        title: "Serviço criado",
+        description: `Serviço para ${novoServico.clientes?.nome} foi iniciado.`,
+      });
+    } catch (error) {
+      console.error('Erro ao criar serviço:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível criar o serviço.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const finalizarServico = (id: number) => {
-    setServicos(servicos.map(servico => 
-      servico.id === id ? { ...servico, status: "finalizado" as const } : servico
-    ));
-    
-    toast({
-      title: "Serviço finalizado",
-      description: "Serviço marcado como concluído.",
-    });
+  const finalizarServico = async (id: string) => {
+    try {
+      const servico = servicos.find(s => s.id === id);
+      if (!servico) return;
+
+      const tempoRealMinutos = Math.floor((new Date().getTime() - new Date(servico.data_inicio).getTime()) / 60000);
+
+      const { error } = await supabase
+        .from('historico_servicos')
+        .update({ 
+          status: "finalizado",
+          data_fim: new Date().toISOString(),
+          tempo_real_minutos: tempoRealMinutos
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setServicos(servicos.map(servico => 
+        servico.id === id ? { 
+          ...servico, 
+          status: "finalizado" as const,
+          data_fim: new Date().toISOString(),
+          tempo_real_minutos: tempoRealMinutos
+        } : servico
+      ));
+      
+      toast({
+        title: "Serviço finalizado",
+        description: "Serviço marcado como concluído.",
+      });
+    } catch (error) {
+      console.error('Erro ao finalizar serviço:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível finalizar o serviço.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatCurrency = (value: number) => 
@@ -164,20 +227,28 @@ export default function Servicos() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="tipoServico"
+                  name="tipo_servico_id"
                   rules={{ required: "Tipo de serviço é obrigatório" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo de Serviço</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        const tipoSelecionado = tiposServicos.find(t => t.id === value);
+                        if (tipoSelecionado) {
+                          form.setValue('valor', tipoSelecionado.valor_padrao.toString());
+                        }
+                      }} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione o serviço" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {tiposServico.map((tipo) => (
-                            <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                          {tiposServicos.map((tipo) => (
+                            <SelectItem key={tipo.id} value={tipo.id}>
+                              {tipo.nome} - {formatCurrency(tipo.valor_padrao)}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -188,14 +259,25 @@ export default function Servicos() {
 
                 <FormField
                   control={form.control}
-                  name="nomeCliente"
-                  rules={{ required: "Nome do cliente é obrigatório" }}
+                  name="cliente_id"
+                  rules={{ required: "Cliente é obrigatório" }}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome do Cliente</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome completo" {...field} />
-                      </FormControl>
+                      <FormLabel>Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o cliente" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {clientes.map((cliente) => (
+                            <SelectItem key={cliente.id} value={cliente.id}>
+                              {cliente.nome} - {cliente.modelo_veiculo}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -203,65 +285,18 @@ export default function Servicos() {
 
                 <FormField
                   control={form.control}
-                  name="modeloCarro"
-                  rules={{ required: "Modelo do carro é obrigatório" }}
+                  name="valor"
+                  rules={{ required: "Valor é obrigatório" }}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Modelo do Carro</FormLabel>
+                      <FormLabel>Valor (R$)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: Honda Civic" {...field} />
+                        <Input placeholder="35.00" type="number" step="0.01" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="placa"
-                  rules={{ required: "Placa é obrigatória" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Placa do Veículo</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ABC-1234" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="valor"
-                    rules={{ required: "Valor é obrigatório" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor (R$)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="35.00" type="number" step="0.01" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tempoEstimado"
-                    rules={{ required: "Tempo é obrigatório" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tempo (min)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="60" type="number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
 
                 <FormField
                   control={form.control}
@@ -339,7 +374,7 @@ export default function Servicos() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
                         <Car className="h-5 w-5 text-primary" />
-                        {servico.tipoServico}
+                         {servico.tipos_servicos?.nome}
                       </CardTitle>
                       <Badge className="bg-orange-100 text-orange-700">Em Andamento</Badge>
                     </div>
@@ -348,12 +383,11 @@ export default function Servicos() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Cliente</p>
-                        <p className="font-medium">{servico.nomeCliente}</p>
+                        <p className="font-medium">{servico.clientes?.nome}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Veículo</p>
-                        <p className="font-medium">{servico.modeloCarro}</p>
-                        <p className="text-xs text-muted-foreground">{servico.placa}</p>
+                        <p className="font-medium">{servico.clientes?.modelo_veiculo}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Valor</p>
@@ -361,14 +395,14 @@ export default function Servicos() {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Tempo Estimado</p>
-                        <p className="font-medium">{formatTime(servico.tempoEstimado)}</p>
+                        <p className="font-medium">{formatTime(servico.tipos_servicos?.tempo_medio_minutos || 0)}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between pt-4 border-t">
                       <div className="flex items-center gap-2 text-sm">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span>Responsável: {servico.funcionarioResponsavel}</span>
+                        <span>Responsável: {servico.funcionario_responsavel}</span>
                       </div>
                       <Button 
                         onClick={() => finalizarServico(servico.id)}
@@ -402,7 +436,7 @@ export default function Servicos() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
                         <Car className="h-5 w-5 text-primary" />
-                        {servico.tipoServico}
+                        {servico.tipos_servicos?.nome}
                       </CardTitle>
                       <Badge className="bg-green-100 text-green-700">Finalizado</Badge>
                     </div>
@@ -411,12 +445,11 @@ export default function Servicos() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Cliente</p>
-                        <p className="font-medium">{servico.nomeCliente}</p>
+                        <p className="font-medium">{servico.clientes?.nome}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Veículo</p>
-                        <p className="font-medium">{servico.modeloCarro}</p>
-                        <p className="text-xs text-muted-foreground">{servico.placa}</p>
+                        <p className="font-medium">{servico.clientes?.modelo_veiculo}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Valor</p>
@@ -424,7 +457,7 @@ export default function Servicos() {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Responsável</p>
-                        <p className="font-medium">{servico.funcionarioResponsavel}</p>
+                        <p className="font-medium">{servico.funcionario_responsavel}</p>
                       </div>
                     </div>
                   </CardContent>
