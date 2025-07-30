@@ -65,6 +65,7 @@ export default function Clientes() {
   );
 
   const onSubmit = async (data: any) => {
+    console.log('Tentando submeter dados:', data);
     try {
       const { data: novoCliente, error } = await supabase
         .from('clientes')
@@ -76,6 +77,8 @@ export default function Clientes() {
         }])
         .select()
         .single();
+      
+      console.log('Resposta do Supabase:', { novoCliente, error });
       
       if (error) throw error;
       
