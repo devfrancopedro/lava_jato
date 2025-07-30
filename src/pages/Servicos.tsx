@@ -169,19 +169,19 @@ export default function Servicos() {
         const matchDataFim = !filtros.dataFim || dataInicio <= new Date(filtros.dataFim);
 
         // Filtro por tipo de serviço
-        const matchTipoServico = !filtros.tipoServico || 
+        const matchTipoServico = !filtros.tipoServico || filtros.tipoServico === "all" ||
           servico.tipos_servicos?.id === filtros.tipoServico;
 
         // Filtro por cliente
-        const matchCliente = !filtros.cliente || 
+        const matchCliente = !filtros.cliente || filtros.cliente === "all" ||
           servico.clientes?.id === filtros.cliente;
 
         // Filtro por modelo de veículo
-        const matchModeloVeiculo = !filtros.modeloVeiculo || 
+        const matchModeloVeiculo = !filtros.modeloVeiculo || filtros.modeloVeiculo === "all" ||
           servico.clientes?.modelo_veiculo?.toLowerCase().includes(filtros.modeloVeiculo.toLowerCase());
 
         // Filtro por status
-        const matchStatus = !filtros.status || 
+        const matchStatus = !filtros.status || filtros.status === "all" ||
           servico.status === filtros.status;
 
         return matchSearch && matchDataInicio && matchDataFim && matchTipoServico && matchCliente && matchModeloVeiculo && matchStatus;
@@ -503,7 +503,7 @@ export default function Servicos() {
                         <SelectValue placeholder="Todos os serviços" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos os serviços</SelectItem>
+                        <SelectItem value="all">Todos os serviços</SelectItem>
                         {dadosFiltros.tiposServicos.map((tipo) => (
                           <SelectItem key={tipo.id} value={tipo.id}>
                             {tipo.nome}
@@ -520,7 +520,7 @@ export default function Servicos() {
                         <SelectValue placeholder="Todos os clientes" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos os clientes</SelectItem>
+                        <SelectItem value="all">Todos os clientes</SelectItem>
                         {dadosFiltros.clientes.map((cliente) => (
                           <SelectItem key={cliente.id} value={cliente.id}>
                             {cliente.nome}
@@ -537,7 +537,7 @@ export default function Servicos() {
                         <SelectValue placeholder="Todos os modelos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos os modelos</SelectItem>
+                        <SelectItem value="all">Todos os modelos</SelectItem>
                         {dadosFiltros.modelosVeiculos.map((modelo) => (
                           <SelectItem key={modelo} value={modelo}>
                             {modelo}
@@ -554,7 +554,7 @@ export default function Servicos() {
                         <SelectValue placeholder="Todos os status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos os status</SelectItem>
+                        <SelectItem value="all">Todos os status</SelectItem>
                         {dadosFiltros.status.map((status) => (
                           <SelectItem key={status.id} value={status.id}>
                             {status.nome}
