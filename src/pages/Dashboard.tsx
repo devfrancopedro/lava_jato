@@ -219,7 +219,9 @@ export default function Dashboard() {
                       fontSize={12}
                     />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip 
+                      formatter={(value, name) => [value, name]}
+                    />
                     <Bar dataKey="quantidade" fill="hsl(var(--primary))" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -242,7 +244,9 @@ export default function Dashboard() {
                       fontSize={12}
                     />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip 
+                      formatter={(value, name) => [value, name]}
+                    />
                     <Bar dataKey="tempo_medio" fill="hsl(var(--secondary))" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -271,7 +275,9 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    formatter={(value, name) => [value, name]}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -295,7 +301,9 @@ export default function Dashboard() {
                     fontSize={12}
                   />
                   <YAxis tickFormatter={(value) => `R$ ${value}`} />
-                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Faturamento']} />
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(Number(value)), 'Faturamento']}
+                  />
                   <Bar dataKey="valor_total" fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>

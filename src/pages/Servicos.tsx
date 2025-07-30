@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Car, Clock, User, DollarSign, CheckCircle, Play } from "lucide-react";
+import { Plus, Search, Car, Clock, User, DollarSign, CheckCircle, Play, Filter, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,48 @@ interface Servico {
   tipos_servicos?: TipoServico;
 }
 
+interface Filtros {
+  dataInicio: string;
+  dataFim: string;
+  tipoServico: string;
+  cliente: string;
+  modeloVeiculo: string;
+  status: string;
+}
+
+// Dados específicos para os filtros
+const dadosFiltros = {
+  tiposServicos: [
+    { id: "1", nome: "Lavagem Simples" },
+    { id: "2", nome: "Lavagem Completa" },
+    { id: "3", nome: "Lavagem Premium" },
+    { id: "4", nome: "Enceramento" },
+    { id: "5", nome: "Polimento" },
+    { id: "6", nome: "Higienização Interna" }
+  ],
+  clientes: [
+    { id: "1", nome: "João Silva", modelo_veiculo: "Honda Civic" },
+    { id: "2", nome: "Maria Santos", modelo_veiculo: "Toyota Corolla" },
+    { id: "3", nome: "Carlos Oliveira", modelo_veiculo: "Ford Focus" },
+    { id: "4", nome: "Ana Costa", modelo_veiculo: "Volkswagen Golf" },
+    { id: "5", nome: "Pedro Lima", modelo_veiculo: "Chevrolet Cruze" }
+  ],
+  modelosVeiculos: [
+    "Honda Civic",
+    "Toyota Corolla", 
+    "Ford Focus",
+    "Volkswagen Golf",
+    "Chevrolet Cruze",
+    "Hyundai HB20",
+    "Fiat Argo",
+    "Renault Kwid"
+  ],
+  status: [
+    { id: "andamento", nome: "Em Andamento" },
+    { id: "finalizado", nome: "Finalizado" }
+  ]
+};
+
 export default function Servicos() {
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -47,6 +89,15 @@ export default function Servicos() {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [filtros, setFiltros] = useState<Filtros>({
+    dataInicio: "",
+    dataFim: "",
+    tipoServico: "",
+    cliente: "",
+    modeloVeiculo: "",
+    status: "",
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -103,14 +154,62 @@ export default function Servicos() {
     "Maria Oliveira"
   ];
 
-  const filteredServicos = servicos.filter(servico =>
-    servico.clientes?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    servico.tipos_servicos?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    servico.funcionario_responsavel.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const aplicarFiltros = (servicos: Servico[]) => {
+    return servicos.filter(servico => {
+      try {
+        // Filtro por termo de busca
+        const matchSearch = !searchTerm || 
+          servico.clientes?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          servico.tipos_servicos?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          servico.funcionario_responsavel?.toLowerCase().includes(searchTerm.toLowerCase());
 
+        // Filtro por data
+        const dataInicio = new Date(servico.data_inicio);
+        const matchDataInicio = !filtros.dataInicio || dataInicio >= new Date(filtros.dataInicio);
+        const matchDataFim = !filtros.dataFim || dataInicio <= new Date(filtros.dataFim);
+
+        // Filtro por tipo de serviço
+        const matchTipoServico = !filtros.tipoServico || 
+          servico.tipos_servicos?.id === filtros.tipoServico;
+
+        // Filtro por cliente
+        const matchCliente = !filtros.cliente || 
+          servico.clientes?.id === filtros.cliente;
+
+        // Filtro por modelo de veículo
+        const matchModeloVeiculo = !filtros.modeloVeiculo || 
+          servico.clientes?.modelo_veiculo?.toLowerCase().includes(filtros.modeloVeiculo.toLowerCase());
+
+        // Filtro por status
+        const matchStatus = !filtros.status || 
+          servico.status === filtros.status;
+
+        return matchSearch && matchDataInicio && matchDataFim && matchTipoServico && matchCliente && matchModeloVeiculo && matchStatus;
+      } catch (error) {
+        console.error('Erro ao aplicar filtro:', error);
+        return true; // Se houver erro, mostra o item
+      }
+    });
+  };
+
+  const filteredServicos = aplicarFiltros(servicos);
   const servicosAndamento = filteredServicos.filter(s => s.status === "andamento");
   const servicosFinalizados = filteredServicos.filter(s => s.status === "finalizado");
+
+  const limparFiltros = () => {
+    setFiltros({
+      dataInicio: "",
+      dataFim: "",
+      tipoServico: "",
+      cliente: "",
+      modeloVeiculo: "",
+      status: "",
+    });
+  };
+
+  const temFiltrosAtivos = () => {
+    return Object.values(filtros).some(valor => valor !== "");
+  };
 
   const onSubmit = async (data: any) => {
     try {
@@ -334,15 +433,141 @@ export default function Servicos() {
         </Dialog>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
-          placeholder="Buscar por placa, cliente ou tipo de serviço..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Buscar por placa, cliente ou tipo de serviço..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Advanced Filters */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setFiltrosAbertos(!filtrosAbertos)}
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Filtros Avançados
+              {temFiltrosAtivos() && (
+                <Badge variant="secondary" className="ml-2">
+                  {Object.values(filtros).filter(v => v !== "").length}
+                </Badge>
+              )}
+            </Button>
+            
+            {temFiltrosAtivos() && (
+              <Button
+                variant="ghost"
+                onClick={limparFiltros}
+                className="gap-2 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+                Limpar Filtros
+              </Button>
+            )}
+          </div>
+
+          {filtrosAbertos && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Início</label>
+                    <Input
+                      type="date"
+                      value={filtros.dataInicio}
+                      onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Fim</label>
+                    <Input
+                      type="date"
+                      value={filtros.dataFim}
+                      onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tipo de Serviço</label>
+                    <Select value={filtros.tipoServico} onValueChange={(value) => setFiltros({ ...filtros, tipoServico: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os serviços" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todos os serviços</SelectItem>
+                        {dadosFiltros.tiposServicos.map((tipo) => (
+                          <SelectItem key={tipo.id} value={tipo.id}>
+                            {tipo.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Cliente</label>
+                    <Select value={filtros.cliente} onValueChange={(value) => setFiltros({ ...filtros, cliente: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os clientes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todos os clientes</SelectItem>
+                        {dadosFiltros.clientes.map((cliente) => (
+                          <SelectItem key={cliente.id} value={cliente.id}>
+                            {cliente.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Modelo do Veículo</label>
+                    <Select value={filtros.modeloVeiculo} onValueChange={(value) => setFiltros({ ...filtros, modeloVeiculo: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os modelos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todos os modelos</SelectItem>
+                        {dadosFiltros.modelosVeiculos.map((modelo) => (
+                          <SelectItem key={modelo} value={modelo}>
+                            {modelo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={filtros.status} onValueChange={(value) => setFiltros({ ...filtros, status: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todos os status</SelectItem>
+                        {dadosFiltros.status.map((status) => (
+                          <SelectItem key={status.id} value={status.id}>
+                            {status.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Services Tabs */}
